@@ -1,0 +1,27 @@
+group 'com.rockyrunstream'
+version '1.0-SNAPSHOT'
+
+apply plugin: 'java'
+
+sourceCompatibility = 1.8
+
+sourceSets.main.java.srcDirs = ['src']
+sourceSets.main.resources.srcDirs = ['resources']
+sourceSets.test.java.srcDirs = ['test']
+sourceSets.test.resources.srcDirs = ['test-resources']
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testCompile 'org.testng:testng:6.14.3'
+}
+
+test {
+    useTestNG()
+
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+}
