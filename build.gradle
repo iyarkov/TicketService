@@ -1,6 +1,13 @@
 group 'com.rockyrunstream'
 version '1.0-SNAPSHOT'
 
+project.ext.springBootVersion = "2.0.3.RELEASE"
+
+project.ext.commonsCollectionsVersion = "4.2"
+project.ext.commonsLangVersion = "3.7"
+project.ext.slf4jVersion = "1.7.25"
+project.ext.logbackVersion = "1.2.3"
+
 apply plugin: 'java'
 
 sourceCompatibility = 1.8
@@ -8,20 +15,38 @@ sourceCompatibility = 1.8
 sourceSets.main.java.srcDirs = ['src']
 sourceSets.main.resources.srcDirs = ['resources']
 sourceSets.test.java.srcDirs = ['test']
-sourceSets.test.resources.srcDirs = ['test-resources']
+sourceSets.test.resources.srcDirs = ['testResources']
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
-    testCompile 'org.testng:testng:6.14.3'
+
+    compile "org.springframework.boot:spring-boot-starter-validation:${springBootVersion}"
+    compile "org.slf4j:slf4j-api:$slf4jVersion"
+    compile "ch.qos.logback:logback-classic:$logbackVersion"
+    compile "ch.qos.logback:logback-core:$logbackVersion"
+    compile "org.apache.commons:commons-lang3:$commonsLangVersion"
+    compile "org.apache.commons:commons-collections4:$commonsCollectionsVersion"
+
+    testCompile "org.springframework.boot:spring-boot-starter-test:${springBootVersion}"
 }
 
 test {
-    useTestNG()
-
     testLogging {
         events "passed", "skipped", "failed"
     }
 }
+
+task performance(type:JavaExec) {
+    main = "com.rockyrunstream.walmart.PerformanceTestApplication"
+    classpath = sourceSets.test.runtimeClasspath
+}
+
+task demo(type:JavaExec) {
+    main = "com.rockyrunstream.walmart.DemoApplication"
+    args color
+    classpath = sourceSets.test.runtimeClasspath
+}
+

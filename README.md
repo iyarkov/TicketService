@@ -1,5 +1,32 @@
 # Ticket Service Coding Challenge
 
+## Readme
+
+The project uses gradle. Commands:
+
+Standard commands
+```shell
+gradle build
+gradle test
+```
+
+There is a demo application that demonstrates how the algorithm selects seats for reservation.
+It executes several scenarios and print venue state into console after each step. 
+There is a delay at the scenario 3 to demonstrate reservation expiration logic.
+At the last step the app fills the whole venue requesting holds of random size until the venue is full
+
+To run demo app
+```shell
+ gradle demo
+```
+or if your console supports ANSI colors
+```shell
+ gradle demo -Pcolor=true
+```
+
+There is another demo to test performance
+
+
 ## Requirements
 Implement a simple ticket service that facilitates the discovery, temporary hold, and final reservation of seats within a
 high-demand performance venue.
@@ -63,6 +90,5 @@ seat hold is assigned
 String reserveSeats(int seatHoldId, String customerEmail);
 }
 ```
-
 
  
