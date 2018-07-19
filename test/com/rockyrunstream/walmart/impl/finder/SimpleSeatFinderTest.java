@@ -1,9 +1,8 @@
 package com.rockyrunstream.walmart.impl.finder;
 
+import com.rockyrunstream.walmart.InternalServiceException;
 import com.rockyrunstream.walmart.NoSeatsAvailable;
 import com.rockyrunstream.walmart.VenueGenerator;
-import com.rockyrunstream.walmart.impl.model.Row;
-import com.rockyrunstream.walmart.impl.model.Segment;
 import com.rockyrunstream.walmart.impl.model.Venue;
 import org.junit.Assert;
 import org.junit.Before;
@@ -54,12 +53,22 @@ public class SimpleSeatFinderTest {
             {1D, 1D, 1D, 1D, 1D, 1D, 1D, 1D, 1D},
             {1D, 1D, 1D, 1D, 1D, 1D, 1D, 1D, 1D, 1D},
         };
-        seatValueFunctionFactory.setValues(venue, values);
+        venue.setValues(values);
     }
 
     @Test(expected = NoSeatsAvailable.class)
     public void testFindNotAvailable() {
         finder.find(venue, 1000);
+    }
+
+    @Test(expected = InternalServiceException.class)
+    public void testNegative() {
+        finder.find(venue, -5);
+    }
+
+    @Test(expected = InternalServiceException.class)
+    public void testZero() {
+        finder.find(venue, 0);
     }
 
     @Test
@@ -163,7 +172,7 @@ public class SimpleSeatFinderTest {
 
     @Test
     public void pendingSeat() {
-        venueData[0][2] = Row.PENDING;
+        venueData[0][2] = Venue.PENDING;
         final List<Segment> result = finder.find(venue, 5);
         log.info("Result {}", result);
         Assert.assertNotNull(result);
@@ -194,7 +203,7 @@ public class SimpleSeatFinderTest {
                 {1, 0, 1, 0, 2, 0, 1, 0, 1, 0},
         };
         venue = VenueGenerator.generate(venueData);
-        seatValueFunctionFactory.setValues(venue, values);
+        venue.setValues(values);
 
         final List<Segment> result = finder.find(venue, 24);
         log.info("Result {}", result);
@@ -206,7 +215,7 @@ public class SimpleSeatFinderTest {
     public void performance() {
         venue = VenueGenerator.generate(1000, 100);
         values = new double[1000][100];
-        seatValueFunctionFactory.setValues(venue, values);
+        venue.setValues(values);
 
         final long before = System.currentTimeMillis();
         for (int i = 0; i < 1000; i++) {
@@ -215,6 +224,52 @@ public class SimpleSeatFinderTest {
         final long after = System.currentTimeMillis();
 
         log.info("Total time {} ms", after - before);
+    }
+
+    @Test
+    public void testBug() {
+        venueData = new byte[][] {
+            {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0},
+            {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0},
+            {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0},
+            {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0},
+            {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0},
+            {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0},
+            {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0},
+            {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0},
+            {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0},
+            {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
+        };
+        venue = VenueGenerator.generate(venueData);
+        venue.setPending(187);
+        venue.setCapacity(200);
+        venue.setValues(new double[][] {
+            {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1},
+            {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+            {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+            {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+            {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+            {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+            {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+            {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+            {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+            {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
+        });
+
+        final List<Segment> result = finder.find(venue, 12);
+        log.info("Result {}", result);
+        Assert.assertNotNull(result);
+        Assert.assertEquals(9, result.size());
+
+        final Segment segment1 = result.get(0);
+        Assert.assertEquals(segment1.getRowIndex(), 0);
+        Assert.assertEquals(segment1.getStart(), 15);
+        Assert.assertEquals(segment1.getLength(), 3);
+
+        final Segment segment2 = result.get(1);
+        Assert.assertEquals(segment2.getRowIndex(), 0);
+        Assert.assertEquals(segment2.getStart(), 18);
+        Assert.assertEquals(segment2.getLength(), 2);
     }
 
 }

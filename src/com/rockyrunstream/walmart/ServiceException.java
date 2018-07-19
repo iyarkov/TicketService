@@ -1,5 +1,8 @@
 package com.rockyrunstream.walmart;
 
+/**
+ * Base class for service exceptions
+ */
 public abstract class ServiceException extends RuntimeException {
 
     public ServiceException(String message) {

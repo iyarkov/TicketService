@@ -10,6 +10,10 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * Generates unique IDs.  SeatHoldId must be unique only limited period of time while they are pending. Sequence must
+ * not be used because next number can be easily guessed
+ */
 @Service
 public class IdGenerator {
 

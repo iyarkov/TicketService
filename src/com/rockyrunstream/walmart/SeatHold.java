@@ -8,7 +8,7 @@ public class SeatHold {
 
     private long expireAt;
 
-    private List<Seat> sets;
+    private List<Seat> seats;
 
     public int getId() {
         return id;
@@ -26,12 +26,12 @@ public class SeatHold {
         this.expireAt = expireAt;
     }
 
-    public List<Seat> getSets() {
-        return sets;
+    public List<Seat> getSeats() {
+        return seats;
     }
 
-    public void setSets(List<Seat> sets) {
-        this.sets = sets;
+    public void setSeats(List<Seat> seats) {
+        this.seats = seats;
     }
 
     @Override
@@ -39,7 +39,7 @@ public class SeatHold {
         return "SeatHold{" +
                 "id=" + id +
                 ", expireAt=" + expireAt +
-                ", sets=" + sets +
+                ", seats=" + seats +
                 '}';
     }
 }

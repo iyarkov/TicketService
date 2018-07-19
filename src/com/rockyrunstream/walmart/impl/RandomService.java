@@ -6,6 +6,9 @@ import org.springframework.stereotype.Service;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 
+/**
+ * Provides random number generator for the app
+ */
 @Service
 public class RandomService {
 

@@ -1,27 +1,31 @@
 package com.rockyrunstream.walmart.impl.model;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.Positive;
-import javax.validation.constraints.PositiveOrZero;
-import java.util.List;
+import com.rockyrunstream.walmart.InternalServiceException;
+import com.rockyrunstream.walmart.impl.store.SeatMap;
 
 public class Venue {
 
-    @Positive
+    public static final byte AVAILABLE = 0;
+    public static final byte PENDING = 1;
+    public static final byte RESERVED = 2;
+
+    /*
+     *  Venue parameters
+     */
     private int capacity;
-
-    @PositiveOrZero
-    private int available;
-
-    @PositiveOrZero
     private int reserved;
+    private int pending;
+    private long maxHoldTime;
 
-    @NotEmpty
-    private List<@Valid Row> rows;
+    /**
+     * Value of every row in the venue. Share for all venue instances
+     */
+    private double[][] values;
 
-    @PositiveOrZero
-    private int transactionId;
+    /**
+     * Venue map. Every seat is either available, pending or reserved
+     */
+    private byte[][] rows;
 
     public int getCapacity() {
         return capacity;
@@ -31,28 +35,20 @@ public class Venue {
         this.capacity = capacity;
     }
 
-    public int getAvailable() {
-        return available;
+    public double[][] getValues() {
+        return values;
     }
 
-    public void setAvailable(int available) {
-        this.available = available;
+    public void setValues(double[][] values) {
+        this.values = values;
     }
 
-    public List<Row> getRows() {
+    public byte[][] getRows() {
         return rows;
     }
 
-    public void setRows(List<Row> rows) {
+    public void setRows(byte[][] rows) {
         this.rows = rows;
-    }
-
-    public int getTransactionId() {
-        return transactionId;
-    }
-
-    public void setTransactionId(int transactionId) {
-        this.transactionId = transactionId;
     }
 
     public int getReserved() {
@@ -61,5 +57,61 @@ public class Venue {
 
     public void setReserved(int reserved) {
         this.reserved = reserved;
+    }
+
+    public int getPending() {
+        return pending;
+    }
+
+    public void setPending(int pending) {
+        this.pending = pending;
+    }
+
+    public int getAvailable() {
+        return capacity - reserved - pending;
+    }
+
+    public long getMaxHoldTime() {
+        return maxHoldTime;
+    }
+
+    public void setMaxHoldTime(long maxHoldTime) {
+        this.maxHoldTime = maxHoldTime;
+    }
+
+    public Venue getCopy() {
+        final Venue venue = new Venue();
+        venue.setCapacity(this.getCapacity());
+        venue.setValues(this.getValues());
+        venue.setMaxHoldTime(this.getMaxHoldTime());
+
+        //1. Clone rows
+        final byte[][] rows = this.getRows();
+        final byte[][] rowsClone = new byte[this.getRows().length][];
+        for (int i = 0; i < rows.length; i++) {
+            final byte[] seats = rows[i];
+            final byte[] seatsClone = new byte[seats.length];
+            System.arraycopy(seats, 0, seatsClone, 0, seats.length);
+            rowsClone[i] = seatsClone;
+        }
+        venue.setRows(rowsClone);
+        return venue;
+    }
+
+    public void updateSeat(SeatMap seats) {
+        seats.getPendingSeats().forEach(s -> {
+            if (rows[s.getRow()][s.getSeat()] != AVAILABLE) {
+                throw new InternalServiceException("Data corrupted seat double bucked: " + s.getLabel());
+            }
+            rows[s.getRow()][s.getSeat()] = Venue.PENDING;
+        });
+        seats.getReservedSeats().forEach(s -> {
+            if (rows[s.getRow()][s.getSeat()] != AVAILABLE) {
+                throw new InternalServiceException("Data corrupted seat double bucked: " + s.getLabel());
+            }
+            rows[s.getRow()][s.getSeat()] = Venue.RESERVED;
+        });
+        setPending(seats.getPendingSeats().size());
+        setReserved(seats.getReservedSeats().size());
     }
 }

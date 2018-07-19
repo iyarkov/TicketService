@@ -38,8 +38,11 @@ public class DemoApplication extends AbstractApplication {
                 {1D, 2D, 2D, 2D, 2D, 2D, 2D, 2D, 2D, 1D},
                 {1D, 2D, 2D, 2D, 2D, 2D, 2D, 2D, 2D, 1D}
         };
-        final long holdPeriod = 1_000;
-        configuration.configure(venue, seatValues, holdPeriod);
+        final long maxHoldTime = 1_000;
+        venue.setValues(seatValues);
+        venue.setMaxHoldTime(maxHoldTime);
+        venueService.setVenue(venue);
+        store.drop();
 
 
         //2. Banner

@@ -9,11 +9,14 @@ import java.util.List;
 public class Reservation {
 
     public enum State {
-        PENDING, EXPIRED, ABORTED, COMPLETED
+        PENDING, EXPIRED, COMPLETED
     }
 
     @PositiveOrZero
     private int id;
+
+    @PositiveOrZero
+    private int transactionId;
 
     @PositiveOrZero
     private int seatHoldId;
@@ -28,11 +31,9 @@ public class Reservation {
     private State state;
 
     @NotEmpty
-    private List<@Valid Segment> segments;
+    private List<@Valid ReservationSeat> seats;
 
     private String confirmationCode;
-
-
 
     public String getEmail() {
         return email;
@@ -48,14 +49,6 @@ public class Reservation {
 
     public void setState(State state) {
         this.state = state;
-    }
-
-    public List<Segment> getSegments() {
-        return segments;
-    }
-
-    public void setSegments(List<Segment> segments) {
-        this.segments = segments;
     }
 
     public String getConfirmationCode() {
@@ -90,13 +83,33 @@ public class Reservation {
         this.seatHoldId = seatHoldId;
     }
 
+    public List<ReservationSeat> getSeats() {
+        return seats;
+    }
+
+    public void setSeats(List<ReservationSeat> seats) {
+        this.seats = seats;
+    }
+
+    public int getTransactionId() {
+        return transactionId;
+    }
+
+    public void setTransactionId(int transactionId) {
+        this.transactionId = transactionId;
+    }
+
     @Override
     public String toString() {
         return "Reservation{" +
                 "id=" + id +
+                ", transactionId=" + transactionId +
                 ", seatHoldId=" + seatHoldId +
+                ", expiresAt=" + expiresAt +
                 ", email='" + email + '\'' +
                 ", state=" + state +
+                ", seats=" + seats +
+                ", confirmationCode='" + confirmationCode + '\'' +
                 '}';
     }
 }

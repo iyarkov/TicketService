@@ -1,11 +1,8 @@
 package com.rockyrunstream.walmart;
 
-import com.rockyrunstream.walmart.impl.model.Row;
 import com.rockyrunstream.walmart.impl.model.Venue;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 /**
  * Simplifies generation of venues
@@ -28,17 +25,7 @@ public class VenueGenerator {
 
     public static Venue generate(byte[][] data) {
         final Venue venue = new Venue();
-        final List<Row> rows = new ArrayList<>();
-        int capacity = 0;
-        for (byte[] seats : data) {
-            final Row row = new Row();
-            row.setSeats(seats);
-            rows.add(row);
-            capacity += seats.length;
-        }
-        venue.setRows(rows);
-        venue.setAvailable(capacity);
-        venue.setCapacity(capacity);
+        venue.setRows(data);
         return venue;
     }
 

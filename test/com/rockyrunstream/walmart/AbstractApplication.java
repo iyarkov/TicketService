@@ -2,10 +2,10 @@ package com.rockyrunstream.walmart;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
-import com.rockyrunstream.walmart.impl.TickerServiceConfiguration;
-import com.rockyrunstream.walmart.impl.model.Row;
+import com.rockyrunstream.walmart.impl.VenueService;
 import com.rockyrunstream.walmart.impl.model.Venue;
 import com.rockyrunstream.walmart.impl.store.ReservationStore;
+import com.rockyrunstream.walmart.impl.store.SeatMap;
 import org.apache.commons.lang3.BooleanUtils;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,22 +13,22 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
-
-import java.util.List;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
+@EnableScheduling
 public abstract class AbstractApplication {
     private static final String ANSI_RESET = "\u001B[0m";
     private final String ANSI_RED = "\u001B[31m";
-
-    @Autowired
-    protected TickerServiceConfiguration configuration;
 
     @Autowired
     protected ReservationStore store;
 
     @Autowired
     protected TicketService ticketService;
+
+    @Autowired
+    protected VenueService venueService;
 
     private boolean useColor = false;
 
@@ -73,19 +73,21 @@ public abstract class AbstractApplication {
     protected void printVenue() {
         System.out.println("");
         System.out.println("");
-        final Venue venue = store.getVenue();
-        final List<Row> rows = venue.getRows();
+        final SeatMap seatMap = store.getSeatMap();
+        final Venue venue = venueService.getVenue();
+        venue.updateSeat(seatMap);
+        final byte[][] rows = venue.getRows();
         final String reservedSeat = useColor ? " " + ANSI_RED + "@" + ANSI_RESET + " " : " @ ";
 
-        for (Row row : rows) {
+        for (byte[] seats : rows) {
             System.out.print("                            | ");
-            for (int seat : row.getSeats()) {
+            for (int seat : seats) {
                 switch (seat) {
-                    case Row.AVAILABLE :
+                    case Venue.AVAILABLE :
                         System.out.print(" - "); break;
-                    case Row.PENDING :
+                    case Venue.PENDING :
                         System.out.print(reservedSeat); break;
-                    case Row.RESERVED :
+                    case Venue.RESERVED :
                         System.out.print(" # "); break;
                     default:
                         System.out.print("&&&"); break;

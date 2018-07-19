@@ -2,8 +2,6 @@ package com.rockyrunstream.walmart.impl.finder;
 
 import com.rockyrunstream.walmart.InternalServiceException;
 import com.rockyrunstream.walmart.NoSeatsAvailable;
-import com.rockyrunstream.walmart.impl.model.Row;
-import com.rockyrunstream.walmart.impl.model.Segment;
 import com.rockyrunstream.walmart.impl.model.Venue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +28,7 @@ public class SimpleSeatFinder implements SeatFinder {
             throw new InternalServiceException("numSeats must be positive ");
         }
         final Context context = createContext(venue, numSeats);
-        return execute(numSeats, context);
+        return findSeats(numSeats, context);
     }
 
     private Context createContext(Venue venue, int numSeats) {
@@ -38,11 +36,17 @@ public class SimpleSeatFinder implements SeatFinder {
         findFreeSegments(context, venue);
 
         //Double-check free space
-        if (venue.getAvailable() != context.getTotalAvailable()) {
-            log.warn("Corrupt data, venue.getAvailable() = {}, context.getTotalAvailable() = {}", venue.getAvailable(), context.getTotalAvailable());
+        if (context.getAvailable() < numSeats) {
+            throw new NoSeatsAvailable(numSeats, context.getAvailable(), context.getReserved());
         }
-        if (context.getTotalAvailable() < numSeats) {
-            throw new NoSeatsAvailable(numSeats, context.getTotalAvailable(), venue.getReserved());
+        if (context.getAvailable() != venue.getAvailable()) {
+            log.warn("Data inconsistency, context.getAvailable() = {}, venue.getAvailable() = {}", context.getAvailable(), venue.getAvailable());
+        }
+        if (context.getPending() != venue.getPending()) {
+            log.warn("Data inconsistency, context.getPending() = {}, venue.getPending() = {}", context.getPending(), venue.getPending());
+        }
+        if (context.getReserved() != venue.getReserved()) {
+            log.warn("Data inconsistency, context.getReserved() = {}, venue.getReserved() = {}", context.getReserved(), venue.getReserved());
         }
 
         context.setValueFunction(seatValueFunctionFactory.getValueFunction(venue));
@@ -53,21 +57,21 @@ public class SimpleSeatFinder implements SeatFinder {
      * Find all segments - uninterrupted sequence of available seats
      */
     private void findFreeSegments(Context context, Venue venue) {
-        //final TreeSet<Segment> freeSegments = new TreeSet<>(new SegmentComparator());
         final List<Segment> freeSegments = new ArrayList<>();
-        int totalAvailable = 0;
-        for (int rowIndex = 0; rowIndex < venue.getRows().size(); rowIndex++) {
+        int availableCounter = 0;
+        int reservedCounter = 0;
+        int pendingCounter = 0;
+        for (int rowIndex = 0; rowIndex < venue.getRows().length; rowIndex++) {
             Segment activeSegment = null;
-            final Row row = venue.getRows().get(rowIndex);
             byte previousSeat = -1;
-            final byte[] seats = row.getSeats();
+            final byte[] seats = venue.getRows()[rowIndex];
             for (int i = 0; i < seats.length; i++) {
                 final byte seat = seats[i];
                 //Beginning of a new segment
                 if (previousSeat != seat) {
                     addNewSegment(freeSegments, activeSegment, i);
                     //We need only available seats
-                    if (seat == Row.AVAILABLE) {
+                    if (seat == Venue.AVAILABLE) {
                         activeSegment = new Segment();
                         activeSegment.setRowIndex(rowIndex);
                         activeSegment.setStart(i);
@@ -76,17 +80,25 @@ public class SimpleSeatFinder implements SeatFinder {
                     }
                 }
                 previousSeat = seat;
-                if (seat == Row.AVAILABLE) {
-                    totalAvailable++;
+                if (seat == Venue.AVAILABLE) {
+                    availableCounter++;
+                }
+                if (seat == Venue.RESERVED) {
+                    reservedCounter++;
+                }
+                if (seat == Venue.PENDING) {
+                    pendingCounter++;
                 }
             }
             addNewSegment(freeSegments, activeSegment, seats.length);
         }
         context.setFreeSegments(freeSegments);
-        context.setTotalAvailable(totalAvailable);
+        context.setAvailable(availableCounter);
+        context.setReserved(reservedCounter);
+        context.setPending(pendingCounter);
     }
 
-    private List<Segment> execute(int numSeats, Context context) {
+    private List<Segment> findSeats(int numSeats, Context context) {
         final List<Segment> result = new ArrayList<>();
         final LinkedList<Integer> processingQueue = new LinkedList<>();
         processingQueue.add(numSeats);
@@ -143,21 +155,14 @@ public class SimpleSeatFinder implements SeatFinder {
     }
 
     class Context {
-        private Venue venue;
 
         private Collection<Segment> freeSegments;
 
-        private int totalAvailable;
+        private int available;
+        private int reserved;
+        private int pending;
 
         private SeatValueFunction valueFunction;
-
-        public Venue getVenue() {
-            return venue;
-        }
-
-        public void setVenue(Venue venue) {
-            this.venue = venue;
-        }
 
         public Collection<Segment> getFreeSegments() {
             return freeSegments;
@@ -175,12 +180,28 @@ public class SimpleSeatFinder implements SeatFinder {
             this.valueFunction = valueFunction;
         }
 
-        public int getTotalAvailable() {
-            return totalAvailable;
+        public int getAvailable() {
+            return available;
         }
 
-        public void setTotalAvailable(int totalAvailable) {
-            this.totalAvailable = totalAvailable;
+        public void setAvailable(int available) {
+            this.available = available;
+        }
+
+        public int getReserved() {
+            return reserved;
+        }
+
+        public void setReserved(int reserved) {
+            this.reserved = reserved;
+        }
+
+        public int getPending() {
+            return pending;
+        }
+
+        public void setPending(int pending) {
+            this.pending = pending;
         }
     }
 
@@ -233,10 +254,6 @@ public class SimpleSeatFinder implements SeatFinder {
             return bestSegment;
         }
 
-        double getBestScore() {
-            return bestScore;
-        }
-
         SeekingSegment chooseBest(SeekingSegment another) {
             if (another == null) {
                 return this;
@@ -266,12 +283,12 @@ public class SimpleSeatFinder implements SeatFinder {
 
         List<Segment> newFreeSegments() {
             if (freeSegment.getLength() == reservationSegment.getLength()) {
-                //Free segment is completly occpiend
+                //Free segment is completely occupied
                 return Collections.emptyList();
             }
             final List<Segment> result = new ArrayList<>(2);
             //Left segment
-            final int leftLength = reservationSegment.getStart() - freeSegment.getStart();
+            final int leftLength = bestStart - freeSegment.getStart();
             if (leftLength > 0) {
                 final Segment leftSegment = new Segment();
                 leftSegment.setRowIndex(freeSegment.getRowIndex());
@@ -281,12 +298,13 @@ public class SimpleSeatFinder implements SeatFinder {
             }
 
             //Right segment
-            final int rightLength = freeSegment.getEnd() - reservationSegment.getEnd();
+            final int bestEnd = bestStart + reservationSegment.getLength();
+            final int rightLength = freeSegment.getEnd() - bestEnd;
             if (rightLength > 0) {
                 final Segment rightSegment = new Segment();
                 rightSegment.setRowIndex(freeSegment.getRowIndex());
-                rightSegment.setStart(reservationSegment.getEnd());
-                rightSegment.setLength(leftLength);
+                rightSegment.setStart(bestEnd);
+                rightSegment.setLength(rightLength);
                 result.add(rightSegment);
             }
             return result;
@@ -295,10 +313,6 @@ public class SimpleSeatFinder implements SeatFinder {
         public Segment getFreeSegment() {
             return freeSegment;
         }
-    }
-
-    public void setSeatValueFunctionFactory(SeatValueFunctionFactory seatValueFunctionFactory) {
-        this.seatValueFunctionFactory = seatValueFunctionFactory;
     }
 }
 

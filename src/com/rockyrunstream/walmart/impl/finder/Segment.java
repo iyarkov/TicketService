@@ -1,18 +1,14 @@
-package com.rockyrunstream.walmart.impl.model;
+package com.rockyrunstream.walmart.impl.finder;
 
-import javax.validation.constraints.Positive;
-import javax.validation.constraints.PositiveOrZero;
-import java.beans.Transient;
-
+/**
+ * Uninterrupted row of seats of a same state
+ */
 public class Segment {
 
-    @PositiveOrZero
     private int rowIndex;
 
-    @PositiveOrZero
     private int start;
 
-    @Positive
     private int length;
 
     public int getRowIndex() {
@@ -39,7 +35,6 @@ public class Segment {
         this.length = length;
     }
 
-    @Transient
     public int getEnd() {
         return start + length;
     }
